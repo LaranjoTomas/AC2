@@ -1,0 +1,16 @@
+GAS LISTING Exer2.s 			page 1
+
+
+DEFINED SYMBOLS
+             Exer2.s:1      *ABS*:000000000000000b READ_CORE_TIMER
+             Exer2.s:2      *ABS*:000000000000000c RESET_CORE_TIMER
+             Exer2.s:3      *ABS*:0000000000000003 PUT_CHAR
+             Exer2.s:4      *ABS*:0000000000000006 PRINT_INT
+             Exer2.s:8      .text:0000000000000000 main
+             Exer2.s:10     .text:0000000000000004 while
+             Exer2.s:41     .text:0000000000000074 endwhile
+             Exer2.s:47     .text:000000000000007c delay
+             Exer2.s:52     .text:0000000000000084 WHILE
+             Exer2.s:62     .text:00000000000000ac ENDWHILE
+
+NO UNDEFINED SYMBOLS

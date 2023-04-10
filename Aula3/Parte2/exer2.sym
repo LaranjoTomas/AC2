@@ -1,0 +1,18 @@
+GAS LISTING exer2.s 			page 1
+
+
+DEFINED SYMBOLS
+             exer2.s:1      *ABS*:000000000000000c RESET_CORE_TIMER
+             exer2.s:2      *ABS*:000000000000000b READ_CORE_TIMER
+             exer2.s:3      *ABS*:000000000000bf88 SFR_BASE_HI
+             exer2.s:4      *ABS*:0000000000006100 TRISE
+             exer2.s:5      *ABS*:0000000000006110 PORTE
+             exer2.s:6      *ABS*:0000000000006120 LATE
+             exer2.s:11     .text:0000000000000000 main
+             exer2.s:23     .text:0000000000000024 loop
+             exer2.s:40     .text:000000000000005c delay
+             exer2.s:43     .text:0000000000000060 for
+             exer2.s:51     .text:000000000000008c endfor
+             exer2.s:46     .text:0000000000000070 read
+
+NO UNDEFINED SYMBOLS

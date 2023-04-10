@@ -1,0 +1,22 @@
+GAS LISTING Exer1_adicional.s 			page 1
+
+
+DEFINED SYMBOLS
+   Exer1_adicional.s:1      *ABS*:0000000000000001 UP
+   Exer1_adicional.s:2      *ABS*:0000000000000000 DOWN
+   Exer1_adicional.s:3      *ABS*:0000000000000003 putChar
+   Exer1_adicional.s:4      *ABS*:0000000000000006 printInt
+   Exer1_adicional.s:5      *ABS*:0000000000000001 inkey
+   Exer1_adicional.s:10     .text:0000000000000000 main
+   Exer1_adicional.s:15     .text:000000000000000c do
+   Exer1_adicional.s:76     .text:00000000000000cc wait
+   Exer1_adicional.s:49     .text:0000000000000070 if
+   Exer1_adicional.s:53     .text:0000000000000080 if2
+   Exer1_adicional.s:57     .text:0000000000000090 if3
+   Exer1_adicional.s:62     .text:00000000000000a8 else
+   Exer1_adicional.s:66     .text:00000000000000b0 enddo
+   Exer1_adicional.s:70     .text:00000000000000c4 end
+   Exer1_adicional.s:79     .text:00000000000000d0 for
+   Exer1_adicional.s:89     .text:00000000000000f8 endfor
+
+NO UNDEFINED SYMBOLS
