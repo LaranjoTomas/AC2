@@ -11,6 +11,16 @@ void putc(char byte)
     U2TXREG = byte;
 }
 
+void putstr(char *str)
+{
+    // use putc() function to send each charater ('\0' should not be sent)
+    while(*str != '\0') {
+        putc(*str);
+        str++;
+    }
+
+}
+
 int main(void) {
     // Configure UART2:
     // 1 - Configure BaudRate Generator
@@ -19,7 +29,7 @@ int main(void) {
     // 2 – Configure number of data bits, parity and number of stop bits
     // (see U2MODE register)
     U2MODEbits.PDSEL1 = 0;
-    U2MODEbits.PDSEL0 = 0;
+    U2MODEbits.PDSEL0 = 1;
     U2MODEbits.STSEL = 1;
     // 3 – Enable the trasmitter and receiver modules (see register U2STA)
     U2STAbits.UTXEN = 1;
@@ -29,7 +39,7 @@ int main(void) {
 
     while(1)
     {
-        putc('+');
+        putstr("String de teste\n");
         delay(1000);
     }
     return 0;
@@ -42,4 +52,3 @@ void delay (unsigned int ms) {
     wait = msVal * ms;
     while (readCoreTimer() < wait);
 }
-
