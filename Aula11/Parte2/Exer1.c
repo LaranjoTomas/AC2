@@ -33,7 +33,6 @@ void putstrInt(char *str)
 
 int main(void)
 {   
-
     // Configure UART2:
     // Configure BaudRate Generator
     U2BRG = (((20000000+(8*115200))/(16*115200)) - 1); // 115200 bps para transmissão/receção 

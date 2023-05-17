@@ -2,6 +2,9 @@
 #define msVal 20000
 
 volatile int voltage = 0; // Global variable
+volatile int voltMin = 0;
+volatile int voltMax = 0;
+
 
 void delay (unsigned int ms) {
     unsigned int wait;
@@ -9,6 +12,15 @@ void delay (unsigned int ms) {
     wait = msVal * ms;
     while (readCoreTimer() < wait);
 }
+
+void putc(char byte)
+{
+    // wait while UART2 UTXBF == 1
+    while(U2STAbits.UTXBF == 1);
+    // Copy "byte" to the U2TXREG register
+    U2TXREG = byte;
+}
+
 
 unsigned char toBcd(unsigned char value) {
     return ((value / 10) << 4) + (value % 10);
@@ -37,6 +49,39 @@ void send2displays(unsigned char value) {
 }
 
 int main(void) {
+    // Configure UART2:
+    // Configure BaudRate Generator
+    U2BRG = (((20000000+(8*115200))/(16*115200)) - 1); // 115200 bps para transmissão/receção 
+    U2MODEbits.BRGH = 0; // fator de 16
+    // Configure number of data bits, parity and number of stop bits
+    U2MODEbits.PDSEL1 = 0;
+    U2MODEbits.PDSEL0 = 0;
+    U2MODEbits.STSEL = 1;
+    // Enable the trasmitter and receiver modules (see register U2STA)
+    U2STAbits.UTXEN = 1;
+    U2STAbits.URXEN = 1;
+    // Enable UART2 (see register U2MODE)
+    U2MODEbits.ON = 1;
+
+    // Configure UART2 interrupts, with RX interrupts enabled
+    //and TX interrupts disabled:
+    //enable U2RXIE, disable U2TXIE (register IEC1)
+    //set UART2 priority level (register IPC8)
+    //clear Interrupt Flag bit U2RXIF (register IFS1)
+    //define RX interrupt mode (URXISEL bits)
+
+    IEC1bits.U2RXIE = 1;
+    IEC1bits.U2TXIE = 0;
+
+    IPC8bits.U2IP = 1;
+    IPC8bits.U2IS = 2;
+
+    IFS1bits.U2RXIF = 0;
+
+    U2STAbits.URXISEL1 = 0;
+    U2STAbits.URXISEL0 = 0;
+
+    // ######################################
 
     TRISB = 0x80FF;
     TRISD = 0xFF9F;
@@ -91,8 +136,8 @@ void _int_(4) isr_T1(void) {
 }
 
 void _int_(12) isr_T3(void) {
-
-    send2displays(toBcd(voltage));
+    
+    send2displays(voltage);
     IFS0bits.T3IF = 0;
 
 }
@@ -108,8 +153,38 @@ void _int_(27) isr_adc(void) {
     media = media / 8;
     int V = (media * 33 + 511) / 1023;
 
-    voltage = V;
+    voltage = toBcd(V);
 
+    // Update variables "voltMin" with the lowest voltage at the start and "voltMax" with the highest voltage at the start
+    if (voltage < voltMin) {
+        voltMin = voltage;
+    }
+    if (voltage > voltMax) {
+        voltMax = voltage;
+    }
+    // Reset AD1IF flag
     IFS1bits.AD1IF = 0;
+}
 
+void _int_(32) isr_uart2(void)
+{
+    // Read character from FIFO
+    char c = U2RXREG;
+    if(c == 'M') {
+        // Send "voltMax" to the serial port UART2
+        putc((voltMax >> 4) + 0x30);
+        putc('.');
+        putc((voltMax & 0x0F) + 0x30);
+        putc('V');
+        putc('\n');
+    }else if(c == 'm') {
+        // Send "voltMin" to the serial port UART2
+        putc((voltMin >> 4) + 0x30);
+        putc('.');
+        putc((voltMin & 0x0F) + 0x30);
+        putc('V');
+        putc('\n');
+    }
+    // Clear UART2 rx interrupt flag
+    IFS1bits.U2RXIF = 0;
 }
