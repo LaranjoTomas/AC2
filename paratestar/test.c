@@ -1,57 +1,99 @@
 #include <detpic32.h>
-#define N 1
+#define msVal 200000
 
-void delay(unsigned int ms)
-{
+void delay (unsigned int ms) {
+
     resetCoreTimer();
-    while(readCoreTimer() < 20000 * ms);
+    while(readCoreTimer() < msVal * ms);
 }
 
-int main(void)
+void send2displays(unsigned char value)
 {
-    TRISD = TRISD & 0xFF9F;   // 1111 1111 1001 1111
-    TRISB = TRISB & 0x80FF;   // 1000 0000 1111 1111
+	static const char display7Scodes[] = { 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71 };
 
-    int i;
-    // unsigned char array[] = {0x20 /* f */, 0x01/* a*/, 0x02 /*b*/, 0x40/*g*/, 0x10/*e*/, 0x08/*d*/, 0x04/*c*/, 0x40/*g*/};
-    unsigned char array[] = {0x20 /* f */, 0x01/* a*/, 0x02 /*b*/, 0x10 , 0x08, 0x04, 0x02, 0x01, 0x20, 0x04, 0x08, 0x10};
-    int temp[] = {250, 500, 750, 1000, 1250, 1500, 1750, 2000};
-    int lvl;
+	static char flag = 0;
 
-    TRISBbits.TRISB4 = 1;               // RB4 digital output disconnected
-    AD1PCFGbits.PCFG4 = 0;              // RB4 configured as analog input
-    AD1CON1bits.SSRC = 7;               // Convertion trigger selection bits: in this mode an internal counter ends sampling and starts conversion
+	if (flag == 1) {
+		// select display high
+		// send digit_high (dh) to display:	dh = value >> 4;
+		LATD = (LATD & 0xFF9F) | 0xFFDF;
+		LATB = (LATB & 0x80FF) | (display7Scodes[(value >> 4)] << 8);
+		flag = 0;
+	} else {
+		// select display low
+		// send digit_low (dl) to display:	dl = value & 0x0F;
+		LATD = (LATD & 0xFF9F) | 0xFFBF;
+		LATB = (LATB & 0x80FF) | (display7Scodes[(value & 0x0F)] << 8);
+		flag = 1;
+	}
+}
 
-    AD1CON1bits.CLRASAM = 1;            // Stop conversions when the 1st A/D converter interrupt is generated. At the same time hardware clears the ASAM bit
+void putc(char byte2send) {
+    while(U2STAbits.UTXBF == 1);
+    U2TXREG = byte2send;
+}
 
-    AD1CON3bits.SAMC = 16;              // Sample time is 16 TAD (TAD = 100 ns)
-    AD1CON2bits.SMPI = N - 1;           // Interrupt is generated after N samples
+char getc(void) {
+    while (U2STAbits.URXDA == 0);
+    return U2RXREG;
+}
 
-    AD1CHSbits.CH0SA = 4;               // 4 is the desired input analog channel
+int main() {
 
-    AD1CON1bits.ON = 1;                 // Enable A/D converter
+    char c;
 
-    while(1)
-    {
-        for(i=0; i <12; i ++ ){
-            AD1CON1bits.ASAM = 1;
-            while(IFS1bits.AD1IF == 0);
+    U2BRG = (((20000000 + (8*115200))/(16*115200))-1);
+    U2MODEbits.BRGH = 0;
+    U2MODEbits.PDSEL0 = 0;
+    U2MODEbits.PDSEL1 = 0;
+    U2MODEbits.STSEL = 0;
+    U2STAbits.UTXEN = 1;
+    U2STAbits.URXEN = 1;
+    U2MODEbits.ON = 1;
 
-            if(i<=2 || i >= 9) {
-                LATDbits.LATD6 = 1;
-                LATDbits.LATD5 = 0;
-            } else {
-                LATDbits.LATD6 = 0;
-                LATDbits.LATD5 = 1;
-            }
-            lvl = (ADC1BUF0*8)/1024;
+    T2CONbits.TCKPS = 5; // 1:32 prescaler (i.e. fout_presc = 625 KHz)
+    PR2 = 62499; // Fout = 20MHz / (32 * (62499 + 1)) = 10 Hz
+    TMR2 = 0; // Clear timer T2 count register
+    T2CONbits.TON = 1; // Enable timer T2 (must be the last command of the timer configuration sequence)
+    EnableInterrupts();
 
-            LATB = (LATB & 0x80FF) | array[i] << 8;
-            printInt10(lvl);
-            delay(temp[lvl]);
+    IPC2bits.T2IP = 2; // Interrupt priority (must be in range [1..6])
+    IEC0bits.T2IE = 1; // Enable timer T2 interrupts
+    IFS0bits.T2IF = 0; // Reset timer T2 interrupt flag
+
+    TRISE = 0xFFF0;
+    LATE = 0xFFF0;
+    TRISD = 0x9F;
+
+    while (1) {
+        c = getc();
+
+        if (c == '0') {
+            LATE = 0xFFF1;
+            send2displays('0');
+        } else if (c == '1') {
+            LATE = 0xFFF2;
+            send2displays('0');
+        } else if (c == '2') {
+            LATE = 0xFFF4;
+            send2displays('0');
+        } else if (c == '3') {
+            LATE = 0xFFF8;
+            send2displays('0');
+        } else if (c == '4') {
+            LATE = 0xFFFF;
+            send2displays('F');
+            delay(1000);
+            LATE = 0xFFF0;
+            send2displays(' ');
         }
-        IFS1bits.AD1IF = 0;
     }
 
     return 0;
+}
+
+void _int_ (8) isr_t2(void) {
+
+   delay(1000);
+   IFS0bits.T2IF = 0;
 }
