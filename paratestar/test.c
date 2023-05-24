@@ -51,49 +51,29 @@ int main() {
     U2STAbits.URXEN = 1;
     U2MODEbits.ON = 1;
 
-    T2CONbits.TCKPS = 5; // 1:32 prescaler (i.e. fout_presc = 625 KHz)
-    PR2 = 62499; // Fout = 20MHz / (32 * (62499 + 1)) = 10 Hz
-    TMR2 = 0; // Clear timer T2 count register
-    T2CONbits.TON = 1; // Enable timer T2 (must be the last command of the timer configuration sequence)
-    EnableInterrupts();
-
-    IPC2bits.T2IP = 2; // Interrupt priority (must be in range [1..6])
-    IEC0bits.T2IE = 1; // Enable timer T2 interrupts
-    IFS0bits.T2IF = 0; // Reset timer T2 interrupt flag
-
     TRISE = 0xFFF0;
     LATE = 0xFFF0;
-    TRISD = 0x9F;
+    TRISD = TRISD & 0xFF9F;
+    LATD = 0x0000;
 
     while (1) {
         c = getc();
 
         if (c == '0') {
             LATE = 0xFFF1;
-            send2displays('0');
+            send2displays(0x12);
         } else if (c == '1') {
             LATE = 0xFFF2;
-            send2displays('0');
         } else if (c == '2') {
             LATE = 0xFFF4;
-            send2displays('0');
         } else if (c == '3') {
             LATE = 0xFFF8;
-            send2displays('0');
         } else if (c == '4') {
             LATE = 0xFFFF;
-            send2displays('F');
             delay(1000);
             LATE = 0xFFF0;
-            send2displays(' ');
         }
     }
 
     return 0;
-}
-
-void _int_ (8) isr_t2(void) {
-
-   delay(1000);
-   IFS0bits.T2IF = 0;
 }
