@@ -1,11 +1,18 @@
 #include <detpic32.h>
-#define msVal 200000
+#define msVal 20000
 
-void delay (unsigned int ms) {
+volatile int value = 0;
+
+void delay(unsigned int ms) {
 
     resetCoreTimer();
     while(readCoreTimer() < msVal * ms);
 }
+
+int toBCD (unsigned int val) {
+
+    return (((value / 10) << 4 ) + (value % 10));
+};
 
 void send2displays(unsigned char value)
 {
@@ -28,52 +35,49 @@ void send2displays(unsigned char value)
 	}
 }
 
-void putc(char byte2send) {
-    while(U2STAbits.UTXBF == 1);
-    U2TXREG = byte2send;
-}
+int main () {
 
-char getc(void) {
-    while (U2STAbits.URXDA == 0);
-    return U2RXREG;
-}
+    T1CONbits.TCKPS = 5; // 1:32 prescaler (i.e. fout_presc = 625 KHz)
+    PR1 = 62499; // Fout = 20MHz / (32 * (62499 + 1)) = 10 Hz
+    TMR1 = 0; // Clear timer T2 count register
+    IPC1bits.T1IP = 2; // Interrupt priority (must be in range [1..6])
+    IEC0bits.T1IE = 1; // Enable timer T2 interrupts
+    T1CONbits.TON = 1; // Enable timer T2 (must be the last command of the timer configuration sequence)
+    
+    T2CONbits.TCKPS = 3; // 1:32 prescaler (i.e. fout_presc = 625 KHz)
+    PR2 = 49999; // Fout = 20MHz / (32 * (62499 + 1)) = 10 Hz
+    TMR2 = 0; // Clear timer T2 count register
+    IPC2bits.T2IP = 2; // Interrupt priority (must be in range [1..6])
+    IEC0bits.T2IE = 1; // Enable timer T2 interrupts
+    T2CONbits.TON = 1; // Enable timer T2 (must be the last command of the timer configuration sequence)
+    
+    EnableInterrupts();
 
-int main() {
-
-    char c;
-
-    U2BRG = (((20000000 + (8*115200))/(16*115200))-1);
-    U2MODEbits.BRGH = 0;
-    U2MODEbits.PDSEL0 = 0;
-    U2MODEbits.PDSEL1 = 0;
-    U2MODEbits.STSEL = 0;
-    U2STAbits.UTXEN = 1;
-    U2STAbits.URXEN = 1;
-    U2MODEbits.ON = 1;
-
-    TRISE = 0xFFF0;
-    LATE = 0xFFF0;
-    TRISD = TRISD & 0xFF9F;
-    LATD = 0x0000;
+    TRISB = 0x80FF;
+    TRISD = 0x9F;
 
     while (1) {
-        c = getc();
 
-        if (c == '0') {
-            LATE = 0xFFF1;
-            send2displays(0x12);
-        } else if (c == '1') {
-            LATE = 0xFFF2;
-        } else if (c == '2') {
-            LATE = 0xFFF4;
-        } else if (c == '3') {
-            LATE = 0xFFF8;
-        } else if (c == '4') {
-            LATE = 0xFFFF;
-            delay(1000);
-            LATE = 0xFFF0;
-        }
+        printInt(count, 16 | 2 << 16);
+        putChar('\r');
     }
 
     return 0;
+}
+
+void _int_ (4) isr_t1 (void) {
+
+    if (value == 100) {
+        value = 0;
+    } else {
+        value++;
+    }
+
+    IFS0bits.T1IF = 0;
+}
+
+void _int_ (8) isr_t2 (void) {
+
+    send2displays(toBCD(value));
+    IFS0bits.T2IF = 0;
 }
