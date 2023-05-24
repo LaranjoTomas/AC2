@@ -7,6 +7,16 @@ void delay (unsigned int ms) {
     while(readCoreTimer() < 20000 * ms);
 }
 
+
+void putc(char byte)
+{
+    // wait while UART2 UTXBF == 1
+    while(U2STAbits.UTXBF == 1);
+    // Copy "byte" to the U2TXREG register
+    U2TXREG = byte;
+}
+
+
 unsigned int toBcd(unsigned int value) {
     return ((value / 10) << 4) + (value % 10);
 }
@@ -33,9 +43,12 @@ void send2displays(unsigned char value) {
 
 int main(void) {
 
+    int c, freq;
+    int freqVal[5] = { 39061 , 19530, 13019, 9764 , 7811 };
+
     // Configure Timer T1 (2 Hz with interrupts disabled)
-    T1CONbits.TCKPS = 5; // / 20*10^6 / 65536 * 10 = 30
-    PR1 = 62499; // Fout = 20MHz / (32) =  625000 / 10 = 62500
+    T1CONbits.TCKPS = 3; // / 20*10^6 / 65536 * 10 = 30
+    PR1 = 7811; // Fout = 20MHz / (256) =  78125 / 10 = 7812
     TMR1 = 0; // Reset timer T1 count register
     T1CONbits.TON = 1; // Enable timer T1 (must be the last command of the timer configuration sequence)
     
@@ -57,6 +70,19 @@ int main(void) {
     EnableInterrupts();
 
     while(1) {
+
+        c = inkey();
+
+        if (c > 0 || c < 4) {
+            c = c - '0';
+            freq = 2 * (1 + c);
+            PR1 = freqVal[c];
+
+            printStr("Nova frequência: ");
+            putc(freq + '0');
+            putChar('\n');
+        } 
+
         printInt(count, 16 | 2 << 16);
         putChar('\n');
     }
@@ -64,11 +90,11 @@ int main(void) {
 }
 
 void _int_(4) isr_T1(void) {
-    
     if (count == 99) {
         count = 0;
+    } else {
+        count++;
     }
-    count++;
     IFS0bits.T1IF = 0; // Reset T2 interrupt flag
 }
 

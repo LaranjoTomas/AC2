@@ -12,7 +12,7 @@ void delay(unsigned int ms) {
 int toBCD (unsigned int val) {
 
     return (((value / 10) << 4 ) + (value % 10));
-};
+}
 
 void send2displays(unsigned char value)
 {
@@ -37,7 +37,10 @@ void send2displays(unsigned char value)
 
 int main () {
 
-    T1CONbits.TCKPS = 5; // 1:32 prescaler (i.e. fout_presc = 625 KHz)
+    int c, freq;
+    int freqVal[5] = {39061, 19530, 13019, 9764, 7811};
+
+    T1CONbits.TCKPS = 3; // 1:32 prescaler (i.e. fout_presc = 625 KHz)
     PR1 = 62499; // Fout = 20MHz / (32 * (62499 + 1)) = 10 Hz
     TMR1 = 0; // Clear timer T2 count register
     IPC1bits.T1IP = 2; // Interrupt priority (must be in range [1..6])
@@ -50,7 +53,7 @@ int main () {
     IPC2bits.T2IP = 2; // Interrupt priority (must be in range [1..6])
     IEC0bits.T2IE = 1; // Enable timer T2 interrupts
     T2CONbits.TON = 1; // Enable timer T2 (must be the last command of the timer configuration sequence)
-    
+
     EnableInterrupts();
 
     TRISB = 0x80FF;
@@ -58,7 +61,19 @@ int main () {
 
     while (1) {
 
-        printInt(count, 16 | 2 << 16);
+        c = inkey();
+
+        if ((c > 0) || (c < 4)) {
+
+            c = c - '0';
+            freq = (2 * (1 + c));
+            PR1 = freqVal[c];
+            printStr("Nova frequência: ");
+            putc(freq + '0');
+            putChar('\n');
+        }
+
+        printInt(value, 16 | 2 << 16);
         putChar('\r');
     }
 

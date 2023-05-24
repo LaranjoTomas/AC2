@@ -58,6 +58,7 @@ int main(void) {
 
     while(1) {
         printInt(count, 16 | 2 << 16);
+        putChar('\r');
     }
     return 0;
 }
@@ -66,8 +67,9 @@ void _int_(4) isr_T1(void) {
     
     if (count == 99) {
         count = 0;
+    } else {
+        count++;
     }
-    count++;
     IFS0bits.T1IF = 0; // Reset T2 interrupt flag
 }
 

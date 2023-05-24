@@ -83,5 +83,4 @@ int main(void) {
 
 void _int_(8) isr_T2(void) {
     send2displays(value);
-    IFS0bits.T2IF = 0; // Reset T2 interrupt flag
 }
