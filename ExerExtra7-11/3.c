@@ -20,6 +20,12 @@ int main(void) {
     OC3RS = (20000000 * duty_cycle) / 100;                 
     OC3CONbits.ON = 1;                 
 
+    OC5CONbits.OCM = 6;                 
+    OC5CONbits.OCTSEL = 1;              // Use timer T3 as the time base for PWM generation
+    OC5RS = (20000000 * (100 - duty_cycle)) / 100; // 20*10^6 * duty _cycle / 100                 
+    OC5CONbits.ON = 1;                 
+
+
     // Configurar ADC
     TRISBbits.TRISB4 = 1;
     AD1PCFGbits.PCFG4= 0;
@@ -44,7 +50,7 @@ int main(void) {
 
         duty_cycle = (soma * 100 + 511) / 1023;
 
-        if(dutycycle >= 0 && duty_cycle <= 100) {
+        if(duty_cycle >= 0 && duty_cycle <= 100) {
             OC3RS = (20000000 * duty_cycle) / 100;  
         }
 
