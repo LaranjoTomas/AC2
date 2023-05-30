@@ -19,6 +19,14 @@ void putstring(char *str)
 }
 
 int main(void) {
+
+
+    T2CONbits.TCKPS = 7; //20*10^6 / 65536 * 2 = 152 
+    PR2 = 39062; // Fout = 20MHz / 256 = /2 = 39063
+    TMR2 = 0; // Reset timer T2 count register
+    T2CONbits.TON = 1; // Enable timer T2 (must be the last command of the
+
+
     // Configure UART2:
     // Configure BaudRate Generator
     U2BRG = (((20000000 + (8*1200))/(16*1200)) - 1); // 1200 bps para transmissão/receção 
@@ -32,7 +40,11 @@ int main(void) {
     // Enable UART2 (see register U2MODE)
     U2MODEbits.ON = 1;
 
-    TRISB = 0x000F; // RB3, RB2, RB1, RB0 as inputs
+    TRISB = TRISB | 0x000F; // RB3, RB2, RB1, RB0 as inputs
+
+    IPC2bits.T2IP = 2; // Interrupt priority (must be in range [1..6])
+    IEC0bits.T2IE = 1; // Enable timer T2 interrupts
+    IFS0bits.T2IF = 0; // Reset timer T2 interrupt flag
     
     // Enable global Interrupts
     EnableInterrupts();
@@ -43,7 +55,10 @@ int main(void) {
         putc(PORTBbits.RB1 + '0'); 
         putc(PORTBbits.RB0 + '0');
         putc('\n');
-        delay(500); // 2hz
     }
     return 0;
+}
+
+void _int_(8) isr_T2(void){
+    IFS0bits.T2IF = 0;
 }
